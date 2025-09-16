@@ -11,11 +11,8 @@ import SwiftUI
 // Main view for the "Today's Memory" screen.
 struct TodayView: View {
     
-    // The shared data source for all thoughts.
-    @ObservedObject var memoryData: MemoryData
-    
-    // State variable to hold the random thought to be displayed.
-    @State private var todaysMemory: Memory?
+    // This view now receives the single, pre-selected random thought.
+    let todaysMemory: Memory?
     
     var body: some View {
         // Use a ZStack to layer the content over the background color.
@@ -141,12 +138,6 @@ struct TodayView: View {
                 
                 Spacer()
                 
-            }
-            .onAppear {
-                // Pick a random thought from the list when the view first appears.
-                if let randomMemory = memoryData.memories.randomElement() {
-                    self.todaysMemory = randomMemory
-                }
             }
         }
     }
