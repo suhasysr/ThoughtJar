@@ -9,16 +9,20 @@
 import Foundation
 import SwiftUI
 
-// A simple data model for a thought.
-// Identifiable is crucial for ForEach loops in SwiftUI.
-struct Memory: Identifiable {
-    let id = UUID()
+// A simple data model for a memory.
+struct Memory: Identifiable, Equatable { // Equatable is added for easier comparison
+    let id: UUID
     var text: String
     var date: String
+    
+    init(id: UUID = UUID(), text: String, date: String) {
+        self.id = id
+        self.text = text
+        self.date = date
+    }
 }
 
-// ObservableObject to manage the list of thoughts.
-// Any view observing this object will automatically update when its data changes.
+// ObservableObject to manage the list of memories.
 class MemoryData: ObservableObject {
     @Published var memories: [Memory] = [
         Memory(text: "The best view comes after the hardest climb.", date: "June 15, 2024"),
@@ -28,9 +32,21 @@ class MemoryData: ObservableObject {
         Memory(text: "An unexamined life is not worth living.", date: "June 11, 2024")
     ]
     
-    // Method to add a new thought to the list.
-    func addThought(text: String) {
+    // Method to add a new memory to the list.
+    func addMemory(text: String) {
         let newMemory = Memory(text: text, date: DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .none))
-        memories.insert(newMemory, at: 0) // Adds the new thought to the beginning of the array.
+        memories.insert(newMemory, at: 0) // Adds the new memory to the beginning of the array.
+    }
+    
+    // Method to delete a memory.
+    func deleteMemory(memoryId: UUID) {
+        memories.removeAll { $0.id == memoryId }
+    }
+    
+    // Method to update an existing memory.
+    func updateMemory(memory: Memory) {
+        if let index = memories.firstIndex(where: { $0.id == memory.id }) {
+            memories[index] = memory
+        }
     }
 }
