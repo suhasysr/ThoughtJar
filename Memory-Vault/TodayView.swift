@@ -23,7 +23,7 @@ struct TodayView: View {
                 HStack {
                     Text("Memory Vault")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(.blue)
                     
                     Spacer()
                     

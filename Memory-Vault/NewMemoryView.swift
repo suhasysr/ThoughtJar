@@ -27,7 +27,7 @@ struct NewMemoryView: View {
                     
                     Text("New Memory")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(.blue)
                         .padding(.leading)
                     
                     Spacer()
