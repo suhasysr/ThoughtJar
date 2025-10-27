@@ -9,46 +9,108 @@
 import SwiftUI
 
 struct MainView: View {
-    // Create a single instance of your data model to be shared.
     @StateObject private var memoryData = MemoryData()
     
     // State variable to hold the random thought to be displayed.
     @State private var todaysMemory: Memory?
     
+    // Define keys for UserDefaults
+        private let lastPickDateKey = "lastPickDate"
+        private let todaysMemoryIDKey = "todaysMemoryID"
+    
     var body: some View {
         TabView {
-            // Pass the generated random memory directly to TodayView.
             TodayView(todaysMemory: todaysMemory)
                 .tabItem {
                     Label("Today", systemImage: "calendar")
                 }
             
-            // Pass the shared memoryData object AND a binding for todaysMemory to NewThoughtView.
+            // Pass the binding for todaysMemory
             NewMemoryView(memoryData: memoryData, todaysMemory: $todaysMemory)
                 .tabItem {
                     Label("New Memory", systemImage: "pencil.and.scribble")
                 }
         }
         .onAppear {
-            // This code runs only once when the app is launched.
-            // Check if a random memory has already been selected or if there are any memories.
-            if self.todaysMemory == nil && !memoryData.memories.isEmpty {
-                self.todaysMemory = memoryData.memories.randomElement()
-            }
+            // Run the logic to set up the daily memory
+            setupTodaysMemory()
         }
-        // Observe changes in memoryData.memories to potentially update todaysMemory
         .onChange(of: memoryData.memories) { oldMemories, newMemories in
-            // If todaysMemory was deleted and there are still memories left, pick a new one
-            if todaysMemory != nil && !newMemories.contains(where: { $0.id == todaysMemory!.id }) {
-                todaysMemory = newMemories.randomElement()
-            } else if todaysMemory == nil && !newMemories.isEmpty {
-                 // If there was no todaysMemory previously and now there are memories, pick one
-                todaysMemory = newMemories.randomElement()
-            } else if newMemories.isEmpty {
-                // If all memories are deleted, ensure todaysMemory is nil
+            // This logic handles deletions or the very first memory being added.
+            
+            // If all memories are deleted, clear today's memory
+            if newMemories.isEmpty {
                 todaysMemory = nil
+                clearTodaysMemoryFromDefaults() // Clear from storage too
+            }
+            // If today's memory was just deleted, pick a new one for today
+            else if let currentMemory = todaysMemory, !newMemories.contains(where: { $0.id == currentMemory.id }) {
+                pickAndSaveNewRandomMemory()
+            }
+            // If this is the *first* memory being added, set it as today's memory
+            else if oldMemories.isEmpty && !newMemories.isEmpty {
+                pickAndSaveNewRandomMemory()
             }
         }
+    }
+
+    // --- Helper Functions for Daily Memory ---
+
+    private func setupTodaysMemory() {
+        let defaults = UserDefaults.standard
+        let savedDate = defaults.object(forKey: lastPickDateKey) as? Date
+        
+        // Check 1: Is there a saved date and is it today?
+        if let date = savedDate, Calendar.current.isDateInToday(date) {
+            // It's the same day. Load the saved memory.
+            loadSavedMemory()
+        } else {
+            // It's a new day or the first launch. Pick a new memory.
+            pickAndSaveNewRandomMemory()
+        }
+    }
+
+    private func loadSavedMemory() {
+        let defaults = UserDefaults.standard
+        
+        // Get the saved ID string from UserDefaults
+        if let idString = defaults.string(forKey: todaysMemoryIDKey), let id = UUID(uuidString: idString) {
+            
+            // Find the memory in our data model
+            if let savedMemory = memoryData.memories.first(where: { $0.id == id }) {
+                // Found it! Set it as today's memory.
+                todaysMemory = savedMemory
+            } else {
+                // The saved memory was deleted. Pick a new one.
+                pickAndSaveNewRandomMemory()
+            }
+        } else {
+            // Couldn't find a saved ID. Pick a new one.
+            pickAndSaveNewRandomMemory()
+        }
+    }
+
+    private func pickAndSaveNewRandomMemory() {
+        // Make sure we actually have memories to pick from
+        if let newMemory = memoryData.memories.randomElement() {
+            // Set the state
+            todaysMemory = newMemory
+            
+            // Save this new memory to UserDefaults
+            let defaults = UserDefaults.standard
+            defaults.set(Date(), forKey: lastPickDateKey) // Save today's date
+            defaults.set(newMemory.id.uuidString, forKey: todaysMemoryIDKey) // Save the ID
+        } else {
+            // No memories exist, set to nil
+            todaysMemory = nil
+            clearTodaysMemoryFromDefaults()
+        }
+    }
+    
+    private func clearTodaysMemoryFromDefaults() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: lastPickDateKey)
+        defaults.removeObject(forKey: todaysMemoryIDKey)
     }
 }
 
