@@ -7,15 +7,23 @@
 
 
 import SwiftUI
+import CoreData
 
 struct NewMemoryView: View {
-    @ObservedObject var memoryData: MemoryData
-    @State private var newMemoryText: String = "" // State variable for the new memory input
+    @Environment(\.managedObjectContext) private var viewContext
     
-    @Binding var todaysMemory: Memory? // Binding to update the today's memory if needed
-    @State private var editingMemory: Memory? // Holds the memory being edited
-    @State private var editedMemoryText: String = "" // Holds the text in the edit field
+    @Binding var todaysMemory: Memory? // Binding to the Core Data object
     
+    // This property wrapper automatically fetches data from Core Data
+    // and updates the view when the data changes.
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Memory.date, ascending: false)],
+        animation: .default)
+    private var memories: FetchedResults<Memory>
+    
+    @State private var newMemoryText: String = ""
+    @State private var editingMemory: Memory? // This will be the Core Data object
+    @State private var editedMemoryText: String = ""
     
     var body: some View {
         ZStack {
@@ -50,12 +58,13 @@ struct NewMemoryView: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 15) {
-                            ForEach(memoryData.memories) { memory in
+                            // Loop over the FetchedResults
+                            ForEach(memories) { memory in
                                 MemoryCard(
                                     memory: memory,
                                     onEdit: {
                                         editingMemory = memory
-                                        editedMemoryText = memory.text
+                                        editedMemoryText = memory.text ?? ""
                                     },
                                     onDelete: {
                                         deleteMemoryAction(memory: memory)
@@ -91,17 +100,8 @@ struct NewMemoryView: View {
                         .padding(.horizontal)
                         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
                     
-                    Button(action: {
-                        if !newMemoryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            memoryData.addMemory(text: newMemoryText)
-                            newMemoryText = "" // Clear the text field after saving
-                            // If there was no todaysMemory, pick the new one.
-                            if todaysMemory == nil {
-                                todaysMemory = memoryData.memories.first
-                            }
-                        }
-                    }) {
-                        Text("Save Memory") // Updated text
+                    Button(action: addMemory) { // Updated action
+                        Text("Save Memory")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding()
@@ -116,21 +116,13 @@ struct NewMemoryView: View {
                 Spacer()
             }
             
-            // Full-screen overlay for editing a memory
+            // Edit Overlay (now works with a Core Data object)
             if let memoryToEdit = editingMemory {
                 EditMemoryOverlay(
                     memory: memoryToEdit,
                     editedText: $editedMemoryText,
                     onSave: {
-                        var updatedMemory = memoryToEdit
-                        updatedMemory.text = editedMemoryText
-                        memoryData.updateMemory(memory: updatedMemory)
-                        
-                        // If the edited memory was the "Today's Memory", update it.
-                        if todaysMemory?.id == updatedMemory.id {
-                            todaysMemory = updatedMemory
-                        }
-                        editingMemory = nil // Dismiss overlay
+                        updateMemoryAction(memory: memoryToEdit)
                     },
                     onCancel: {
                         editingMemory = nil // Dismiss overlay
@@ -140,32 +132,97 @@ struct NewMemoryView: View {
         }
     }
     
-    // Helper function to handle memory deletion logic
+    // --- Core Data CRUD Functions ---
+    
+    private func addMemory() {
+        if newMemoryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return
+        }
+        
+        withAnimation {
+            let newMemory = Memory(context: viewContext)
+            newMemory.id = UUID()
+            newMemory.date = Date()
+            newMemory.text = newMemoryText
+            
+            saveContext()
+            newMemoryText = ""
+            
+            // If this is the very first memory, set it as today's
+            if memories.count == 1 {
+                todaysMemory = newMemory
+                // Save to UserDefaults
+                let defaults = UserDefaults.standard
+                defaults.set(Date(), forKey: "lastPickDate")
+                defaults.set(newMemory.id?.uuidString, forKey: "todaysMemoryID")
+            }
+        }
+    }
+    
     private func deleteMemoryAction(memory: Memory) {
         let isTodaysMemory = (todaysMemory?.id == memory.id)
         
-        memoryData.deleteMemory(memoryId: memory.id)
+        withAnimation {
+            viewContext.delete(memory)
+            saveContext()
+        }
         
         // If the deleted memory was today's, pick a new random one.
         if isTodaysMemory {
-            todaysMemory = memoryData.memories.randomElement()
+            // Fetch all remaining memories
+            let request: NSFetchRequest<Memory> = Memory.fetchRequest()
+            do {
+                let remainingMemories = try viewContext.fetch(request)
+                todaysMemory = remainingMemories.randomElement() // Pick a new one
+                
+                // Update UserDefaults
+                let defaults = UserDefaults.standard
+                defaults.set(Date(), forKey: "lastPickDate")
+                defaults.set(todaysMemory?.id?.uuidString, forKey: "todaysMemoryID")
+                
+            } catch {
+                print("Failed to fetch after delete: \(error)")
+                todaysMemory = nil
+            }
+        }
+    }
+    
+    private func updateMemoryAction(memory: Memory) {
+        withAnimation {
+            memory.text = editedMemoryText
+            saveContext()
+            
+            // If the edited memory was the "Today's Memory", update it.
+            if todaysMemory?.id == memory.id {
+                todaysMemory = memory
+            }
+            editingMemory = nil // Dismiss overlay
+        }
+    }
+    
+    private func saveContext() {
+        do {
+            try viewContext.save()
+        } catch {
+            let nsError = error as NSError
+            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
         }
     }
 }
 
 
-// MARK: - Helper Views and Models
+// MARK: - Helper Views
 
-// Custom view for displaying a single memory card
+// The card view for displaying each individual memory.
 struct MemoryCard: View {
-    let memory: Memory
+    @ObservedObject var memory: Memory // Use @ObservedObject for Core Data objects
     let onEdit: () -> Void
     let onDelete: () -> Void
     
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
-                Text(memory.text)
+                Text(memory.text ?? "Empty Memory") // Safely unwrap
                     .font(.body)
                     .foregroundColor(.black)
                     .lineLimit(4)
@@ -194,7 +251,7 @@ struct MemoryCard: View {
             
             Spacer()
             
-            Text(memory.date)
+            Text(memory.date ?? Date(), formatter: itemFormatter) // Use a formatter
                 .font(.caption)
                 .foregroundColor(.gray)
         }
@@ -208,14 +265,14 @@ struct MemoryCard: View {
 
 // Overlay for editing a memory
 struct EditMemoryOverlay: View {
-    let memory: Memory
+    @ObservedObject var memory: Memory
     @Binding var editedText: String
     let onSave: () -> Void
     let onCancel: () -> Void
     
     var body: some View {
         ZStack {
-            Color.black.opacity(0.4).ignoresSafeArea() // Dim background
+            Color.black.opacity(0.4).ignoresSafeArea().onTapGesture(perform: onCancel)
             
             VStack(alignment: .leading, spacing: 15) {
                 Text("Edit Memory")
@@ -228,50 +285,45 @@ struct EditMemoryOverlay: View {
                     .padding(8)
                     .background(Color(UIColor.systemGray5))
                     .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                    )
                 
                 HStack {
-                    Spacer()
-                    Button("Cancel", action: onCancel)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.red.opacity(0.8))
-                        .foregroundColor(.white)
-                        .cornerRadius(5)
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.gray)
+                            .cornerRadius(10)
+                    }
                     
                     Button(action: onSave) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.blue)
                         Text("Save")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .cornerRadius(10)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.blue.opacity(0.8))
-                    .foregroundColor(.white)
-                    .cornerRadius(5)
                 }
             }
             .padding()
-            .frame(maxWidth: .infinity)
             .background(Color.white)
             .cornerRadius(15)
             .shadow(radius: 10)
-            .padding(25) // Inset from edges
+            .padding(25)
         }
     }
 }
 
-// Preview provider for Xcode's Canvas.
-struct NewThoughtView_Previews: PreviewProvider {
-    static var previews: some View {
-        // Provide a dummy MemoryData and a constant binding for preview.
-        NewMemoryView(memoryData: MemoryData(), todaysMemory: .constant(nil))
-    }
-}
+// A helper for formatting dates
+private let itemFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .long
+    formatter.timeStyle = .none
+    return formatter
+}()
 
 //// Preview provider for Xcode's Canvas
 //struct NewMemoryView_Previews: PreviewProvider {

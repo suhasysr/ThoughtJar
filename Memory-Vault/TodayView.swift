@@ -9,9 +9,7 @@
 import SwiftUI
 
 struct TodayView: View {
-    
-    // This view now receives the single, pre-selected random memory.
-    let todaysMemory: Memory?
+    let todaysMemory: Memory? // Make it @ObservedObject
     
     var body: some View {
         // Use a ZStack to layer the content over the background color.
@@ -54,13 +52,15 @@ struct TodayView: View {
                                 .cornerRadius(25)
                             
                             VStack(alignment: .leading) {
-                                Text(memory.text)
+                                // Safely unwrap text
+                                Text(memory.text ?? "No memory text found.")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
                                     .lineLimit(nil)
                                 
-                                Text("Memory recollection from \(memory.date).")
+                                // Safely unwrap and format date
+                                Text("Memory recollection from \(memory.date ?? Date(), formatter: itemFormatter).")
                                     .font(.subheadline)
                                     .foregroundColor(.white)
                             }
@@ -72,8 +72,8 @@ struct TodayView: View {
                     }
                     .padding(.horizontal)
                 } else {
-                    // Display a message if no thoughts have been entered yet.
-                    Text("Enter a memory to get started!")
+                    Text("Add your first memory in the New Memory tab to get started!")
+                        .font(.title)
                         .foregroundColor(.gray)
                         .padding()
                 }
@@ -84,6 +84,14 @@ struct TodayView: View {
         }
     }
 }
+
+// A helper for formatting dates
+private let itemFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .long
+    formatter.timeStyle = .none
+    return formatter
+}()
 
 // Preview provider for Xcode's Canvas.
 //struct TodayView_Previews: PreviewProvider {

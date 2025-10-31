@@ -8,10 +8,15 @@
 import SwiftUI
 
 @main
-struct Memory_VaultApp: App {
+struct MemoryVaultApp: App {
+    // Create the persistence controller
+    let persistenceController = PersistenceController.shared
+    
     var body: some Scene {
         WindowGroup {
             MainView()
+            // Inject the managed object context into the environment
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
