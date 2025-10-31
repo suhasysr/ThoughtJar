@@ -11,24 +11,33 @@ import SwiftUI
 struct TodayView: View {
     let todaysMemory: Memory? // Make it @ObservedObject
     
+    // New Muted Background Color
+    static let mutedBackground = Color(hex: 0xE5E7E4)
+    // New Primary/Accent Color
+    static let primaryColor = Color(hex: 0x4A6D63)
+    // New Dark Text/Header Color
+    static let darkColor = Color(hex: 0x2C3E50)
+    
     var body: some View {
         // Use a ZStack to layer the content over the background color.
         ZStack {
-            Color(UIColor.systemGray6)
+            // Use the soft, creamy background
+            TodayView.mutedBackground
                 .ignoresSafeArea()
             
             VStack {
                 HStack {
+                    // Use the Dark/Header color
                     Text("Memory Vault")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(TodayView.darkColor)
                     
                     Spacer()
                     
                     Image(systemName: "gearshape")
                         .resizable()
                         .frame(width: 25, height: 25)
-                        .foregroundColor(.black)
+                        .foregroundColor(TodayView.darkColor)
                 }
                 .padding(.horizontal)
                 .padding(.top)
@@ -41,15 +50,21 @@ struct TodayView: View {
                         Text("Today's random memory")
                             .font(.title)
                             .fontWeight(.bold)
-                            .foregroundColor(.black)
+                            .foregroundColor(TodayView.darkColor)
                         
                         ZStack {
+                            // Keep the art, but apply a subtle tint for a cohesive look
                             Image("mountain_art")
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(height: 250)
                                 .clipped()
                                 .cornerRadius(25)
+                                .overlay(
+                                    // Subtle overlay to cool down the image tones
+                                    TodayView.primaryColor.opacity(0.1)
+                                        .cornerRadius(25)
+                                )
                             
                             VStack(alignment: .leading) {
                                 // Safely unwrap text
@@ -62,11 +77,12 @@ struct TodayView: View {
                                 // Safely unwrap and format date
                                 Text("Memory recollection from \(memory.date ?? Date(), formatter: itemFormatter).")
                                     .font(.subheadline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Color(white: 0.85)) // Off-white for subtitle
                             }
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.black.opacity(0.3))
+                            // Deep Muted Green overlay for text legibility
+                            .background(TodayView.primaryColor.opacity(0.8))
                             .cornerRadius(25)
                         }
                     }
@@ -74,7 +90,7 @@ struct TodayView: View {
                 } else {
                     Text("Add your first memory in the New Memory tab to get started!")
                         .font(.title)
-                        .foregroundColor(.gray)
+                        .foregroundColor(TodayView.primaryColor)
                         .padding()
                 }
                 

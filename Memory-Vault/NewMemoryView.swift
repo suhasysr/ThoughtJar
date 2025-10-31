@@ -10,6 +10,13 @@ import SwiftUI
 import CoreData
 
 struct NewMemoryView: View {
+    // Define the colors locally or reuse the static properties from TodayView
+    static let mutedBackground = Color(hex: 0xE5E7E4)
+    static let primaryColor = Color(hex: 0x4A6D63)
+    static let darkColor = Color(hex: 0x2C3E50)
+    static let cardHighlight = Color(hex: 0xD4DAD3)
+    static let lightAccent = Color(hex: 0xA8F0FF)
+    
     @Environment(\.managedObjectContext) private var viewContext
     
     @Binding var todaysMemory: Memory? // Binding to the Core Data object
@@ -27,7 +34,8 @@ struct NewMemoryView: View {
     
     var body: some View {
         ZStack {
-            Color(UIColor.systemGray6) // Consistent background color
+            // Use the soft background
+            NewMemoryView.mutedBackground
                 .ignoresSafeArea()
             
             VStack {
@@ -35,7 +43,7 @@ struct NewMemoryView: View {
                     
                     Text("New Memory")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(NewMemoryView.darkColor)
                         .padding(.leading)
                     
                     Spacer()
@@ -43,7 +51,7 @@ struct NewMemoryView: View {
                     Image(systemName: "ellipsis") // Options icon
                         .resizable()
                         .frame(width: 20, height: 5)
-                        .foregroundColor(.black)
+                        .foregroundColor(NewMemoryView.darkColor)
                         .rotationEffect(.degrees(90)) // Rotate to make it vertical
                         .padding(.trailing)
                 }
@@ -87,7 +95,7 @@ struct NewMemoryView: View {
                     TextEditor(text: $newMemoryText)
                         .frame(height: 150) // Adjust height as needed
                         .padding(10)
-                        .background(Color.white)
+                        .background(NewMemoryView.cardHighlight)
                         .cornerRadius(10)
                         .overlay(
                             Text(newMemoryText.isEmpty ? "I want to remember..." : "")
@@ -106,7 +114,7 @@ struct NewMemoryView: View {
                             .foregroundColor(.white)
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color.blue)
+                            .background(NewMemoryView.primaryColor)
                             .cornerRadius(10)
                     }
                     .padding(.horizontal)
@@ -219,12 +227,18 @@ struct MemoryCard: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
     
+    // Use the defined colors
+    static let darkColor = Color(hex: 0x2C3E50)
+    static let primaryColor = Color(hex: 0x4A6D63)
+    static let lightAccent = Color(hex: 0xA8F0FF)
+    static let cardHighlight = Color(hex: 0xD4DAD3)
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
                 Text(memory.text ?? "Empty Memory") // Safely unwrap
                     .font(.body)
-                    .foregroundColor(.black)
+                    .foregroundColor(MemoryCard.darkColor) //Darker Text
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
                 
@@ -232,19 +246,19 @@ struct MemoryCard: View {
                 
                 // Edit Icon
                 Button(action: onEdit) {
-                    Image(systemName: "pencil.circle")
+                    Image(systemName: "pencil.circle.fill")
                         .resizable()
                         .frame(width: 20, height: 20)
-                        .foregroundColor(.blue)
+                        .foregroundColor(MemoryCard.primaryColor) // Muted Green for active elements
                 }
                 .buttonStyle(PlainButtonStyle()) // To prevent unwanted button styling
                 
                 // Delete Icon
                 Button(action: onDelete) {
-                    Image(systemName: "trash.circle")
+                    Image(systemName: "trash.circle.fill")
                         .resizable()
                         .frame(width: 20, height: 20)
-                        .foregroundColor(.red)
+                        .foregroundColor(.red.opacity(0.7)) // A slightly muted red
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -253,11 +267,11 @@ struct MemoryCard: View {
             
             Text(memory.date ?? Date(), formatter: itemFormatter) // Use a formatter
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(MemoryCard.primaryColor.opacity(0.7).opacity(0.7)) // Muted date text
         }
         .padding()
         .frame(width: 160, height: 180) // Fixed size for the cards
-        .background(Color.white)
+        .background(MemoryCard.cardHighlight) // Use the soft card highlight color
         .cornerRadius(15)
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
     }
