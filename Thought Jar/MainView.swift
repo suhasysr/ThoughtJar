@@ -20,6 +20,24 @@ struct MainView: View {
     private let lastPickDateKey = "lastPickDate"
     private let todaysMemoryIDKey = "todaysMemoryID"
     
+    // --- Tab Bar Color Fix ---
+    init() {
+        // Define the colors using UIColor
+        let activeColor = UIColor(hex: 0x4A6D63) // Your dark green
+        let inactiveColor = UIColor(hex: 0x4A6D63, alpha: 0.5) // A faded version for inactive tabs
+        
+        // Set the active (selected) icon color
+        UITabBar.appearance().tintColor = activeColor
+        
+        // Set the inactive (unselected) icon color
+        UITabBar.appearance().unselectedItemTintColor = inactiveColor
+        
+        // Optional: Set the tab bar background color (uncomment if you want it)
+        // We can set it to the mutedBackground to match the app
+        // UITabBar.appearance().backgroundColor = UIColor(hex: 0xE5E7E4)
+    }
+    // --- End of Fix ---
+    
     var body: some View {
         TabView {
             TodayView(todaysMemory: todaysMemory)
@@ -33,6 +51,7 @@ struct MainView: View {
                     Label("New Memory", systemImage: "pencil.and.scribble")
                 }
         }
+        // We no longer need .accentColor() here, as .appearance() handles it
         .onAppear {
             // Run the logic to set up the daily memory
             setupTodaysMemory()
