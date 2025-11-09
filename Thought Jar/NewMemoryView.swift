@@ -9,13 +9,10 @@
 import SwiftUI
 import CoreData
 
+// MARK: - Main View
 struct NewMemoryView: View {
-    // Define the colors locally or reuse the static properties from TodayView
-    static let mutedBackground = Color(hex: 0xE5E7E4)
-    static let primaryColor = Color(hex: 0x4A6D63)
-    static let darkColor = Color(hex: 0x2C3E50)
-    static let cardHighlight = Color(hex: 0xD4DAD3)
-    static let lightAccent = Color(hex: 0xA8F0FF)
+    
+    // --- PROPERTIES ---
     
     @Environment(\.managedObjectContext) private var viewContext
     
@@ -32,99 +29,177 @@ struct NewMemoryView: View {
     @State private var editingMemory: Memory? // This will be the Core Data object
     @State private var editedMemoryText: String = ""
     
+    // Tracks if the TextEditor is active (for keyboard and layout)
+    @FocusState private var isEditorFocused: Bool
+
+    // --- COLOR DEFINITIONS ---
+    static let mutedBackground = Color(hex: 0xE5E7E4)
+    static let primaryColor = Color(hex: 0x4A6D63)
+    static let darkColor = Color(hex: 0x2C3E50)
+    static let cardHighlight = Color(hex: 0xD4DAD3)
+    
+    // --- BODY ---
+    
     var body: some View {
         ZStack {
             // Use the soft background
             NewMemoryView.mutedBackground
                 .ignoresSafeArea()
-            
-            VStack {
-                HStack {
-                    
-                    Text("New Memory")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(NewMemoryView.darkColor)
-                        .padding(.leading)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "ellipsis") // Options icon
-                        .resizable()
-                        .frame(width: 20, height: 5)
-                        .foregroundColor(NewMemoryView.darkColor)
-                        .rotationEffect(.degrees(90)) // Rotate to make it vertical
-                        .padding(.trailing)
+                .onTapGesture {
+                    // Dismiss keyboard if user taps anywhere on the background
+                    isEditorFocused = false
                 }
-                .padding(.top)
-                
+
+            // Scrollable content area
+            ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading) {
-                    Text("Recent Memories")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .padding(.horizontal)
-                        .padding(.top)
                     
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 15) {
-                            // Loop over the FetchedResults
-                            ForEach(memories) { memory in
-                                MemoryCard(
-                                    memory: memory,
-                                    onEdit: {
-                                        editingMemory = memory
-                                        editedMemoryText = memory.text ?? ""
-                                    },
-                                    onDelete: {
-                                        deleteMemoryAction(memory: memory)
+                    // --- Header ---
+                    HStack {
+                        Image(systemName: "arrow.backward")
+                            .resizable()
+                            .frame(width: 20, height: 15)
+                            .foregroundColor(NewMemoryView.darkColor)
+                            .padding(.leading)
+
+                        Text("New Memory")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(NewMemoryView.darkColor)
+                            .padding(.leading)
+                        Spacer()
+                        Image(systemName: "ellipsis")
+                            .resizable()
+                            .frame(width: 20, height: 5)
+                            .foregroundColor(NewMemoryView.darkColor)
+                            .rotationEffect(.degrees(90))
+                            .padding(.trailing)
+                    }
+                    .padding(.top)
+                    .onTapGesture {
+                        isEditorFocused = false // Dismiss keyboard if user taps header
+                    }
+
+                    // --- Recent Memories (Hides when keyboard is active) ---
+                    if !isEditorFocused {
+                        VStack(alignment: .leading) {
+                            Text("Recent Memories")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(NewMemoryView.darkColor)
+                                .padding(.horizontal)
+                                .padding(.top)
+                                .onTapGesture {
+                                    isEditorFocused = false // Dismiss keyboard if user taps title
+                                }
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 15) {
+                                    ForEach(memories) { memory in
+                                        MemoryCard(
+                                            memory: memory,
+                                            onEdit: {
+                                                editingMemory = memory
+                                                editedMemoryText = memory.text ?? ""
+                                            },
+                                            onDelete: {
+                                                deleteMemoryAction(memory: memory)
+                                            }
+                                        )
                                     }
+                                }
+                                .padding(.horizontal)
+                                .padding(.bottom)
+                            }
+                        }
+                    } // End Conditional "Recent Memories"
+
+                    // --- New Thought Input Area ---
+                    VStack(alignment: .leading) {
+                        Text("What's on your mind?")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(NewMemoryView.darkColor)
+                            .padding(.horizontal)
+                            .padding(.top)
+                            .onTapGesture {
+                                isEditorFocused = false // Dismiss keyboard if user taps title
+                            }
+                        
+                        // TextEditor and its placeholder/minimize button
+                        ZStack(alignment: .topLeading) {
+                            
+                            TextEditor(text: $newMemoryText)
+                                // Expands height when focused
+                                .frame(height: isEditorFocused ? UIScreen.main.bounds.height * 0.4 : 150)
+                                .padding(10)
+                                .background(NewMemoryView.cardHighlight)
+                                .cornerRadius(10)
+                                .focused($isEditorFocused) // Binds focus to the state
+                                .overlay(
+                                    // Visual highlight when focused
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(isEditorFocused ? NewMemoryView.primaryColor : Color.clear, lineWidth: 2)
                                 )
+                            
+                            // Custom "I want to remember..." Placeholder
+                            if newMemoryText.isEmpty {
+                                Text("I want to remember ...")
+                                    .font(.body)
+                                    .foregroundColor(NewMemoryView.darkColor.opacity(0.4))
+                                    .padding(.leading, 15)
+                                    .padding(.top, 18)
+                                    .allowsHitTesting(false) // Lets taps pass through
+                            }
+                            
+                            // Minimize Keyboard Button
+                            if isEditorFocused {
+                                HStack {
+                                    Spacer()
+                                    Button {
+                                        isEditorFocused = false // Removes focus
+                                    } label: {
+                                        Image(systemName: "keyboard.chevron.compact.down")
+                                            .font(.title3)
+                                            .padding(8)
+                                            .foregroundColor(NewMemoryView.darkColor)
+                                            .background(Color.white.opacity(0.5))
+                                            .clipShape(Circle())
+                                    }
+                                    .padding(.top, 5)
+                                    .padding(.trailing, 5)
+                                }
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.bottom)
-                    }
-                }
-                
-                VStack(alignment: .leading) {
-                    Text("What's on your mind?")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .padding(.horizontal)
-                        .padding(.top)
-                    
-                    TextEditor(text: $newMemoryText)
-                        .frame(height: 150) // Adjust height as needed
-                        .padding(10)
-                        .background(NewMemoryView.cardHighlight)
-                        .cornerRadius(10)
-                        .overlay(
-                            Text(newMemoryText.isEmpty ? "I want to remember..." : "")
-                                .foregroundColor(.gray)
-                                .padding(.leading, 14)
-                                .padding(.top, 8)
-                                .opacity(newMemoryText.isEmpty ? 1 : 0),
-                            alignment: .topLeading
-                        )
-                        .padding(.horizontal)
                         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
-                    
-                    Button(action: addMemory) { // Updated action
-                        Text("Save Memory")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(NewMemoryView.primaryColor)
-                            .cornerRadius(10)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                }
-                
-                Spacer()
-            }
+                        // Animate the height change
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isEditorFocused)
+
+                    } // End Input VStack
+
+                } // End ScrollView's main VStack
+                .padding(.bottom, 100) // Space for the floating button
             
-            // Edit Overlay (now works with a Core Data object)
+            } // End ScrollView
+            
+            // --- Floating Save Button (Stays above keyboard) ---
+            VStack {
+                Spacer()
+                Button(action: addMemory) {
+                    Text("Save Memory")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(NewMemoryView.primaryColor)
+                        .cornerRadius(10)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+            } // End Floating Button VStack
+            
+            // --- Edit Overlay (Shown when editingMemory is not nil) ---
             if let memoryToEdit = editingMemory {
                 EditMemoryOverlay(
                     memory: memoryToEdit,
@@ -155,6 +230,8 @@ struct NewMemoryView: View {
             
             saveContext()
             newMemoryText = ""
+            
+            isEditorFocused = false // Dismiss keyboard on save
             
             // If this is the very first memory, set it as today's
             if memories.count == 1 {
@@ -221,24 +298,18 @@ struct NewMemoryView: View {
 
 // MARK: - Helper Views
 
-// The card view for displaying each individual memory.
+// MARK: - Helper View: MemoryCard
 struct MemoryCard: View {
     @ObservedObject var memory: Memory // Use @ObservedObject for Core Data objects
     let onEdit: () -> Void
     let onDelete: () -> Void
-    
-    // Use the defined colors
-    static let darkColor = Color(hex: 0x2C3E50)
-    static let primaryColor = Color(hex: 0x4A6D63)
-    static let lightAccent = Color(hex: 0xA8F0FF)
-    static let cardHighlight = Color(hex: 0xD4DAD3)
     
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
                 Text(memory.text ?? "Empty Memory") // Safely unwrap
                     .font(.body)
-                    .foregroundColor(MemoryCard.darkColor) //Darker Text
+                    .foregroundColor(NewMemoryView.darkColor)
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
                 
@@ -249,7 +320,7 @@ struct MemoryCard: View {
                     Image(systemName: "pencil.circle.fill")
                         .resizable()
                         .frame(width: 20, height: 20)
-                        .foregroundColor(MemoryCard.primaryColor) // Muted Green for active elements
+                        .foregroundColor(NewMemoryView.primaryColor)
                 }
                 .buttonStyle(PlainButtonStyle()) // To prevent unwanted button styling
                 
@@ -267,17 +338,17 @@ struct MemoryCard: View {
             
             Text(memory.date ?? Date(), formatter: itemFormatter) // Use a formatter
                 .font(.caption)
-                .foregroundColor(MemoryCard.primaryColor.opacity(0.7).opacity(0.7)) // Muted date text
+                .foregroundColor(NewMemoryView.primaryColor.opacity(0.7))
         }
         .padding()
-        .frame(width: 160, height: 180) // Fixed size for the cards
-        .background(MemoryCard.cardHighlight) // Use the soft card highlight color
+        .frame(width: 160, height: 180)
+        .background(NewMemoryView.cardHighlight)
         .cornerRadius(15)
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
     }
 }
 
-// Overlay for editing a memory
+// MARK: - Helper View: EditMemoryOverlay
 struct EditMemoryOverlay: View {
     @ObservedObject var memory: Memory
     @Binding var editedText: String
@@ -292,7 +363,7 @@ struct EditMemoryOverlay: View {
                 Text("Edit Memory")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.black)
+                    .foregroundColor(NewMemoryView.darkColor)
                 
                 TextEditor(text: $editedText)
                     .frame(height: 150)
@@ -317,7 +388,7 @@ struct EditMemoryOverlay: View {
                             .foregroundColor(.white)
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color.blue)
+                            .background(NewMemoryView.primaryColor)
                             .cornerRadius(10)
                     }
                 }
@@ -331,8 +402,10 @@ struct EditMemoryOverlay: View {
     }
 }
 
-// A helper for formatting dates
-private let itemFormatter: DateFormatter = {
+// MARK: - Formatters & Extensions
+
+// Date formatter (fileprivate to keep it private to this file)
+fileprivate let itemFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateStyle = .long
     formatter.timeStyle = .none
