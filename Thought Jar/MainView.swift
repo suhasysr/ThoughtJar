@@ -20,23 +20,37 @@ struct MainView: View {
     private let lastPickDateKey = "lastPickDate"
     private let todaysMemoryIDKey = "todaysMemoryID"
     
-    // --- Tab Bar Color Fix ---
     init() {
-        // Define the colors using UIColor
-        let activeColor = UIColor(hex: 0x4A6D63) // Your dark green
-        let inactiveColor = UIColor(hex: 0x4A6D63, alpha: 0.5) // A faded version for inactive tabs
-        
-        // Set the active (selected) icon color
+        // --- Tab Bar Color Fix ---
+        let activeColor = UIColor(hex: 0x4A6D63)
+        let inactiveColor = UIColor(hex: 0x4A6D63, alpha: 0.5)
         UITabBar.appearance().tintColor = activeColor
-        
-        // Set the inactive (unselected) icon color
         UITabBar.appearance().unselectedItemTintColor = inactiveColor
         
-        // Optional: Set the tab bar background color (uncomment if you want it)
-        // We can set it to the mutedBackground to match the app
-        // UITabBar.appearance().backgroundColor = UIColor(hex: 0xE5E7E4)
+        // --- TextEditor Fix ---
+        UITextView.appearance().backgroundColor = .clear
+        
+        // --- NEW FIXES FOR DARK MODE ---
+        
+        // 1. Fix Navigation Title Color ("Notifications")
+        // This sets the title color to our app's darkColor
+        UINavigationBar.appearance().titleTextAttributes = [
+            .foregroundColor: UIColor(hex: 0x2C3E50) // Your darkColor
+        ]
+        
+        // 2. Fix Segmented Picker Text Color ("Daily", "Weekly")
+        // This sets the color for the unselected segments
+        UISegmentedControl.appearance().setTitleTextAttributes([
+            .foregroundColor: UIColor(hex: 0x2C3E50) // Your darkColor
+        ], for: .normal)
+        
+        // This sets the color for the selected segment
+        UISegmentedControl.appearance().setTitleTextAttributes([
+            .foregroundColor: UIColor(hex: 0x4A6D63) // Your primaryColor
+        ], for: .selected)
+        
+        // --- END OF NEW FIXES ---
     }
-    // --- End of Fix ---
     
     var body: some View {
         TabView {

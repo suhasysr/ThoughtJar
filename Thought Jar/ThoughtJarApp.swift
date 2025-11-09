@@ -16,6 +16,9 @@ struct ThoughtJarApp: App {
     init() {
         // This makes all TextEditor backgrounds transparent by default
         UITextView.appearance().backgroundColor = .clear
+        
+        // Request notification permission on app launch
+        NotificationManager.shared.requestAuthorization()
     }
     
     var body: some Scene {

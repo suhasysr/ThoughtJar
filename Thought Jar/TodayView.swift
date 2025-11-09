@@ -11,7 +11,11 @@ import SwiftUI
 struct TodayView: View {
     let todaysMemory: Memory? // Make it @ObservedObject
     
-    // New Muted Background Color
+    // --- NEW ---
+    // State to control the notification settings modal
+    @State private var showNotificationSheet = false
+
+    // Color Definitions
     static let mutedBackground = Color(hex: 0xE5E7E4)
     // New Primary/Accent Color
     static let primaryColor = Color(hex: 0x4A6D63)
@@ -27,17 +31,25 @@ struct TodayView: View {
             
             VStack {
                 HStack {
-                    // Use the Dark/Header color
-                    Text("Memory Vault")
+                    Text("Thought Jar") // Renamed from "Memory Vault" to match
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(TodayView.darkColor)
                     
                     Spacer()
                     
-                    Image(systemName: "gearshape")
-                        .resizable()
-                        .frame(width: 25, height: 25)
-                        .foregroundColor(TodayView.darkColor)
+                    // --- MODIFIED: Gear icon is now a Menu ---
+                    Menu {
+                        Button("Set up notifications") {
+                            showNotificationSheet = true
+                        }
+                        // You can add more buttons here in the future
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .resizable()
+                            .frame(width: 25, height: 25)
+                            .foregroundColor(TodayView.darkColor)
+                    }
+                    // --- End of modification ---
                 }
                 .padding(.horizontal)
                 .padding(.top)
@@ -97,6 +109,11 @@ struct TodayView: View {
                 Spacer()
                 
             }
+        }
+        // --- NEW ---
+        // Add the sheet modifier to present the settings view
+        .sheet(isPresented: $showNotificationSheet) {
+            NotificationSettingsView()
         }
     }
 }
