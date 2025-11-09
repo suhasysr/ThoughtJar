@@ -56,23 +56,23 @@ struct NewMemoryView: View {
                     
                     // --- Header ---
                     HStack {
-                        Image(systemName: "arrow.backward")
-                            .resizable()
-                            .frame(width: 20, height: 15)
-                            .foregroundColor(NewMemoryView.darkColor)
-                            .padding(.leading)
-
+                        //                        Image(systemName: "arrow.backward")
+                        //                            .resizable()
+                        //                            .frame(width: 20, height: 15)
+                        //                            .foregroundColor(NewMemoryView.darkColor)
+                        //                            .padding(.leading)
+                        
                         Text("New Memory")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(NewMemoryView.darkColor)
                             .padding(.leading)
-                        Spacer()
-                        Image(systemName: "ellipsis")
-                            .resizable()
-                            .frame(width: 20, height: 5)
-                            .foregroundColor(NewMemoryView.darkColor)
-                            .rotationEffect(.degrees(90))
-                            .padding(.trailing)
+                        //                        Spacer()
+                        //                        Image(systemName: "ellipsis")
+                        //                            .resizable()
+                        //                            .frame(width: 20, height: 5)
+                        //                            .foregroundColor(NewMemoryView.darkColor)
+                        //                            .rotationEffect(.degrees(90))
+                        //                            .padding(.trailing)
                     }
                     .padding(.top)
                     .onTapGesture {
@@ -132,6 +132,7 @@ struct NewMemoryView: View {
                                 // Expands height when focused
                                 .frame(height: isEditorFocused ? UIScreen.main.bounds.height * 0.4 : 150)
                                 .padding(10)
+                                .scrollContentBackground(.hidden)
                                 .background(NewMemoryView.cardHighlight)
                                 .cornerRadius(10)
                                 .focused($isEditorFocused) // Binds focus to the state
@@ -368,7 +369,10 @@ struct EditMemoryOverlay: View {
                 TextEditor(text: $editedText)
                     .frame(height: 150)
                     .padding(8)
-                    .background(Color(UIColor.systemGray5))
+                    .scrollContentBackground(.hidden)
+                    // CHANGED: Ensure this uses your app's color,
+                    // not a system default like .systemGray5
+                    .background(NewMemoryView.cardHighlight)
                     .cornerRadius(8)
                 
                 HStack {

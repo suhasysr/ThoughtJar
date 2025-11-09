@@ -8,9 +8,15 @@
 import SwiftUI
 
 @main
-struct MemoryVaultApp: App {
+struct ThoughtJarApp: App {
     // Create the persistence controller
     let persistenceController = PersistenceController.shared
+    
+    // This init() runs before any view is created
+    init() {
+        // This makes all TextEditor backgrounds transparent by default
+        UITextView.appearance().backgroundColor = .clear
+    }
     
     var body: some Scene {
         WindowGroup {
