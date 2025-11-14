@@ -66,17 +66,17 @@ struct TodayView: View {
                         
                         ZStack {
                             // Keep the art, but apply a subtle tint for a cohesive look
-                            Image("mountain_art")
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(height: 250)
-                                .clipped()
-                                .cornerRadius(25)
-                                .overlay(
-                                    // Subtle overlay to cool down the image tones
-                                    TodayView.primaryColor.opacity(0.1)
-                                        .cornerRadius(25)
-                                )
+//                            Image("mountain_art")
+//                                .resizable()
+//                                .aspectRatio(contentMode: .fill)
+//                                .frame(height: 250)
+//                                .clipped()
+//                                .cornerRadius(25)
+//                                .overlay(
+//                                    // Subtle overlay to cool down the image tones
+//                                    TodayView.primaryColor.opacity(0.1)
+//                                        .cornerRadius(25)
+//                                )
                             
                             VStack(alignment: .leading) {
                                 // Safely unwrap text
