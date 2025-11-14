@@ -21,7 +21,7 @@ struct NewMemoryView: View {
     // This property wrapper automatically fetches data from Core Data
     // and updates the view when the data changes.
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Memory.date, ascending: false)],
+        sortDescriptors: [SortDescriptor(\.date, order: .reverse)], // Default: Sort by last added
         animation: .default)
     private var memories: FetchedResults<Memory>
     
@@ -37,6 +37,28 @@ struct NewMemoryView: View {
     static let primaryColor = Color(hex: 0x4A6D63)
     static let darkColor = Color(hex: 0x2C3E50)
     static let cardHighlight = Color(hex: 0xD4DAD3)
+    
+    // --- SORTING ---
+    private enum SortType {
+        case alphabetical
+        case lastAdded
+        case firstAdded
+        
+        // This creates the correct SortDescriptor for Core Data
+        var descriptors: [SortDescriptor<Memory>] {
+            switch self {
+            case .alphabetical:
+                // Sorts A -> Z (forward)
+                return [SortDescriptor(\.text, order: .forward)]
+            case .lastAdded:
+                // Sorts newest -> oldest (reverse)
+                return [SortDescriptor(\.date, order: .reverse)]
+            case .firstAdded:
+                // Sorts oldest -> newest (forward)
+                return [SortDescriptor(\.date, order: .forward)]
+            }
+        }
+    }
     
     // --- BODY ---
     
@@ -82,15 +104,42 @@ struct NewMemoryView: View {
                     // --- Recent Memories (Hides when keyboard is active) ---
                     if !isEditorFocused {
                         VStack(alignment: .leading) {
-                            Text("Recent Memories")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(NewMemoryView.darkColor)
-                                .padding(.horizontal)
-                                .padding(.top)
-                                .onTapGesture {
-                                    isEditorFocused = false // Dismiss keyboard if user taps title
+                            
+                            // This is now an HStack to hold the title and menu
+                            HStack {
+                                Text("Recent Memories")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(NewMemoryView.darkColor)
+                                    .onTapGesture {
+                                        isEditorFocused = false
+                                    }
+                                
+                                Spacer() // Pushes the menu to the right
+                                
+                                // --- NEW SORT MENU ---
+                                Menu {
+                                    Button("Sort alphabetically") {
+                                        memories.sortDescriptors = SortType.alphabetical.descriptors
+                                    }
+                                    Button("Sort by last added") {
+                                        memories.sortDescriptors = SortType.lastAdded.descriptors
+                                    }
+                                    Button("Sort by first added") {
+                                        memories.sortDescriptors = SortType.firstAdded.descriptors
+                                    }
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                        .font(.callout)
+                                        .foregroundColor(NewMemoryView.darkColor)
+                                        .padding(8)
+                                        .contentShape(Rectangle())
                                 }
+                                .rotationEffect(.degrees(90)) // Makes the ellipsis vertical
+                                // --- END OF NEW SORT MENU ---
+                            }
+                            .padding(.horizontal)
+                            .padding(.top)
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 15) {
