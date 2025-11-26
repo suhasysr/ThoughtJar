@@ -73,183 +73,184 @@ struct NewMemoryView: View {
                 }
 
             // Scrollable content area
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 0) {
+                
+                // --- Header ---
+                HStack {
+                    //                        Image(systemName: "arrow.backward")
+                    //                            .resizable()
+                    //                            .frame(width: 20, height: 15)
+                    //                            .foregroundColor(NewMemoryView.darkColor)
+                    //                            .padding(.leading)
                     
-                    // --- Header ---
-                    HStack {
-                        //                        Image(systemName: "arrow.backward")
-                        //                            .resizable()
-                        //                            .frame(width: 20, height: 15)
-                        //                            .foregroundColor(NewMemoryView.darkColor)
-                        //                            .padding(.leading)
+                    Text("New Memory")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(NewMemoryView.darkColor)
+                        .padding(.leading)
+                    Spacer()
+                    //                        Spacer()
+                    //                        Image(systemName: "ellipsis")
+                    //                            .resizable()
+                    //                            .frame(width: 20, height: 5)
+                    //                            .foregroundColor(NewMemoryView.darkColor)
+                    //                            .rotationEffect(.degrees(90))
+                    //                            .padding(.trailing)
+                }
+                .padding(.top)
+                .padding(.bottom, 10) // Space below header
+                .onTapGesture {
+                    isEditorFocused = false // Dismiss keyboard if user taps header
+                }
+                
+                // --- New Thought Input Area (Moved to Top) ---
+                VStack(alignment: .leading) {
+                    Text("What's on your mind?")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(NewMemoryView.darkColor)
+                        .padding(.horizontal)
+                        .padding(.top, 20) // Added top padding for spacing
+                        .onTapGesture {
+                            isEditorFocused = false // Dismiss keyboard if user taps title
+                        }
+                    
+                    // TextEditor and its placeholder/minimize button
+                    ZStack(alignment: .topLeading) {
                         
-                        Text("New Memory")
-                            .font(.system(size: 24, weight: .bold))
+                        TextEditor(text: $newMemoryText)
+                        // Expands height when focused
+                            .frame(height: isEditorFocused ? UIScreen.main.bounds.height * 0.35 : 150)
+                            .padding(10)
+                            .scrollContentBackground(.hidden)
+                            .background(NewMemoryView.cardHighlight)
+                            // --- FIX 1: Force text color to be dark ---
                             .foregroundColor(NewMemoryView.darkColor)
-                            .padding(.leading)
-                        //                        Spacer()
-                        //                        Image(systemName: "ellipsis")
-                        //                            .resizable()
-                        //                            .frame(width: 20, height: 5)
-                        //                            .foregroundColor(NewMemoryView.darkColor)
-                        //                            .rotationEffect(.degrees(90))
-                        //                            .padding(.trailing)
-                    }
-                    .padding(.top)
-                    .onTapGesture {
-                        isEditorFocused = false // Dismiss keyboard if user taps header
-                    }
-
-                    // --- Recent Memories (Hides when keyboard is active) ---
-                    if !isEditorFocused {
-                        VStack(alignment: .leading) {
-                            
-                            // This is now an HStack to hold the title and menu
+                            .cornerRadius(10)
+                            .focused($isEditorFocused) // Binds focus to the state
+                            .overlay(
+                                // Visual highlight when focused
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isEditorFocused ? NewMemoryView.primaryColor : Color.clear, lineWidth: 2)
+                            )
+                        
+                        // Custom "I want to remember..." Placeholder
+                        if newMemoryText.isEmpty {
+                            Text("I want to remember ...")
+                                .font(.body)
+                                .foregroundColor(NewMemoryView.darkColor.opacity(0.4))
+                                .padding(.leading, 15)
+                                .padding(.top, 18)
+                                .allowsHitTesting(false) // Lets taps pass through
+                        }
+                        
+                        // Minimize Keyboard Button
+                        if isEditorFocused {
                             HStack {
-                                Text("Recent Memories")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(NewMemoryView.darkColor)
-                                    .onTapGesture {
-                                        isEditorFocused = false
-                                    }
-                                
-                                Spacer() // Pushes the menu to the right
-                                
-                                // --- NEW SORT MENU ---
-                                Menu {
-                                    Button("Sort alphabetically") {
-                                        memories.sortDescriptors = SortType.alphabetical.descriptors
-                                    }
-                                    Button("Sort by last added") {
-                                        memories.sortDescriptors = SortType.lastAdded.descriptors
-                                    }
-                                    Button("Sort by first added") {
-                                        memories.sortDescriptors = SortType.firstAdded.descriptors
-                                    }
+                                Spacer()
+                                Button {
+                                    isEditorFocused = false // Removes focus
                                 } label: {
-                                    Image(systemName: "ellipsis")
-                                        .font(.callout)
-                                        .foregroundColor(NewMemoryView.darkColor)
+                                    Image(systemName: "keyboard.chevron.compact.down")
+                                        .font(.title3)
                                         .padding(8)
-                                        .contentShape(Rectangle())
+                                        .foregroundColor(NewMemoryView.darkColor)
+                                        .background(Color.white.opacity(0.5))
+                                        .clipShape(Circle())
                                 }
-                                .rotationEffect(.degrees(90)) // Makes the ellipsis vertical
-                                // --- END OF NEW SORT MENU ---
-                            }
-                            .padding(.horizontal)
-                            .padding(.top)
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 15) {
-                                    ForEach(memories) { memory in
-                                        MemoryCard(
-                                            memory: memory,
-                                            onEdit: {
-                                                editingMemory = memory
-                                                editedMemoryText = memory.text ?? ""
-                                            },
-                                            onDelete: {
-                                                deleteMemoryAction(memory: memory)
-                                            }
-                                        )
-                                    }
-                                }
-                                .padding(.horizontal)
-                                .padding(.bottom)
+                                .padding(.top, 5)
+                                .padding(.trailing, 5)
                             }
                         }
-                    } // End Conditional "Recent Memories"
-
-                    // --- New Thought Input Area ---
+                    }
+                    .padding(.horizontal)
+                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
+                    // Animate the height change
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isEditorFocused)
+                    
+                    // --- Save Button (Moved Below Input Area) ---
+                    Button(action: addMemory) {
+                        Text("Save Memory")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(NewMemoryView.primaryColor)
+                            .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                    
+                } // End Input VStack
+                .padding(.bottom, 20)
+                
+                Spacer() // This pushes the Recent Memories section to the bottom
+                
+                // --- Recent Memories (Hides when keyboard is active) ---
+                if !isEditorFocused {
                     VStack(alignment: .leading) {
-                        Text("What's on your mind?")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(NewMemoryView.darkColor)
-                            .padding(.horizontal)
-                            .padding(.top)
-                            .onTapGesture {
-                                isEditorFocused = false // Dismiss keyboard if user taps title
-                            }
                         
-                        // TextEditor and its placeholder/minimize button
-                        ZStack(alignment: .topLeading) {
-                            
-                            TextEditor(text: $newMemoryText)
-                                // Expands height when focused
-                                .frame(height: isEditorFocused ? UIScreen.main.bounds.height * 0.4 : 150)
-                                .padding(10)
-                                .scrollContentBackground(.hidden)
-                                .background(NewMemoryView.cardHighlight)
-                                // --- FIX 1: Force text color to be dark ---
+                        // This is now an HStack to hold the title and menu
+                        HStack {
+                            Text("Recent Memories")
+                                .font(.title2)
+                                .fontWeight(.bold)
                                 .foregroundColor(NewMemoryView.darkColor)
-                                .cornerRadius(10)
-                                .focused($isEditorFocused) // Binds focus to the state
-                                .overlay(
-                                    // Visual highlight when focused
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(isEditorFocused ? NewMemoryView.primaryColor : Color.clear, lineWidth: 2)
-                                )
-                            
-                            // Custom "I want to remember..." Placeholder
-                            if newMemoryText.isEmpty {
-                                Text("I want to remember ...")
-                                    .font(.body)
-                                    .foregroundColor(NewMemoryView.darkColor.opacity(0.4))
-                                    .padding(.leading, 15)
-                                    .padding(.top, 18)
-                                    .allowsHitTesting(false) // Lets taps pass through
-                            }
-                            
-                            // Minimize Keyboard Button
-                            if isEditorFocused {
-                                HStack {
-                                    Spacer()
-                                    Button {
-                                        isEditorFocused = false // Removes focus
-                                    } label: {
-                                        Image(systemName: "keyboard.chevron.compact.down")
-                                            .font(.title3)
-                                            .padding(8)
-                                            .foregroundColor(NewMemoryView.darkColor)
-                                            .background(Color.white.opacity(0.5))
-                                            .clipShape(Circle())
-                                    }
-                                    .padding(.top, 5)
-                                    .padding(.trailing, 5)
+                                .onTapGesture {
+                                    isEditorFocused = false
                                 }
+                            
+                            Spacer() // Pushes the menu to the right
+                            
+                            // --- NEW SORT MENU ---
+                            Menu {
+                                Button("Sort alphabetically") {
+                                    memories.sortDescriptors = SortType.alphabetical.descriptors
+                                }
+                                Button("Sort by last added") {
+                                    memories.sortDescriptors = SortType.lastAdded.descriptors
+                                }
+                                Button("Sort by first added") {
+                                    memories.sortDescriptors = SortType.firstAdded.descriptors
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .font(.callout)
+                                    .foregroundColor(NewMemoryView.darkColor)
+                                    .padding(8)
+                                    .contentShape(Rectangle())
                             }
+                            .rotationEffect(.degrees(90)) // Makes the ellipsis vertical
+                            // --- END OF NEW SORT MENU ---
                         }
                         .padding(.horizontal)
-                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
-                        // Animate the height change
-                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isEditorFocused)
-
-                    } // End Input VStack
-
-                } // End ScrollView's main VStack
-                .padding(.bottom, 100) // Space for the floating button
-            
-            } // End ScrollView
-            
-            // --- Floating Save Button (Stays above keyboard) ---
-            VStack {
-                Spacer()
-                Button(action: addMemory) {
-                    Text("Save Memory")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(NewMemoryView.primaryColor)
-                        .cornerRadius(10)
+                        .padding(.bottom, 5)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 15) {
+                                ForEach(memories) { memory in
+                                    MemoryCard(
+                                        memory: memory,
+                                        onEdit: {
+                                            editingMemory = memory
+                                            editedMemoryText = memory.text ?? ""
+                                        },
+                                        onDelete: {
+                                            deleteMemoryAction(memory: memory)
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom)
+                        }
+                        
+                        // Spacer() // Ensures this section pushes up if needed, or fills space. REMOVED as we want it at bottom
+                    }
+                } else {
+                    Spacer() // Pushes input area to top when focused
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-                .ignoresSafeArea(.keyboard, edges: .bottom)
-            } // End Floating Button VStack
+                
+            } // End Main VStack
             
             // --- Edit Overlay (Shown when editingMemory is not nil) ---
             if let memoryToEdit = editingMemory {
