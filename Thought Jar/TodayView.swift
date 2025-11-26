@@ -31,7 +31,7 @@ struct TodayView: View {
             
             VStack {
                 HStack {
-                    Text("Thought Jar") // Renamed from "Memory Vault" to match
+                    Text("ThoughtJar") // Renamed from "Memory Vault" to match
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(TodayView.darkColor)
                     
@@ -123,10 +123,3 @@ private let itemFormatter: DateFormatter = {
     formatter.timeStyle = .none
     return formatter
 }()
-
-// Preview provider for Xcode's Canvas.
-//struct TodayView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        TodayView()
-//    }
-//}
