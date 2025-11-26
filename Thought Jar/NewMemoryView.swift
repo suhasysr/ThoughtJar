@@ -183,6 +183,8 @@ struct NewMemoryView: View {
                                 .padding(10)
                                 .scrollContentBackground(.hidden)
                                 .background(NewMemoryView.cardHighlight)
+                                // --- FIX 1: Force text color to be dark ---
+                                .foregroundColor(NewMemoryView.darkColor)
                                 .cornerRadius(10)
                                 .focused($isEditorFocused) // Binds focus to the state
                                 .overlay(
@@ -422,6 +424,8 @@ struct EditMemoryOverlay: View {
                     // CHANGED: Ensure this uses your app's color,
                     // not a system default like .systemGray5
                     .background(NewMemoryView.cardHighlight)
+                    // --- FIX 2: Force text color to be dark ---
+                    .foregroundColor(NewMemoryView.darkColor)
                     .cornerRadius(8)
                 
                 HStack {
@@ -465,9 +469,3 @@ fileprivate let itemFormatter: DateFormatter = {
     return formatter
 }()
 
-//// Preview provider for Xcode's Canvas
-//struct NewMemoryView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        NewMemoryView()
-//    }
-//}

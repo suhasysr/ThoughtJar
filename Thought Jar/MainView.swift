@@ -44,10 +44,14 @@ struct MainView: View {
             .foregroundColor: UIColor(hex: 0x2C3E50) // Your darkColor
         ], for: .normal)
         
-        // This sets the color for the selected segment
+        // This sets the text color for the selected segment to white for better contrast
         UISegmentedControl.appearance().setTitleTextAttributes([
-            .foregroundColor: UIColor(hex: 0x4A6D63) // Your primaryColor
+            .foregroundColor: UIColor.white
         ], for: .selected)
+        
+        // --- FIX FOR SEGMENTED CONTROL HIGHLIGHT COLOR ---
+        // This sets the background color of the selected segment
+        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(hex: 0x4A6D63) // Your primaryColor
         
         // --- END OF NEW FIXES ---
     }

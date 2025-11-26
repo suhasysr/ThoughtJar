@@ -37,7 +37,7 @@ struct TodayView: View {
                     
                     Spacer()
                     
-                    // --- MODIFIED: Gear icon is now a Menu ---
+                    // Gear icon is now a Menu
                     Menu {
                         Button("Set up notifications") {
                             showNotificationSheet = true
@@ -49,7 +49,6 @@ struct TodayView: View {
                             .frame(width: 25, height: 25)
                             .foregroundColor(TodayView.darkColor)
                     }
-                    // --- End of modification ---
                 }
                 .padding(.horizontal)
                 .padding(.top)
@@ -64,39 +63,39 @@ struct TodayView: View {
                             .fontWeight(.bold)
                             .foregroundColor(TodayView.darkColor)
                         
-                        ZStack {
-                            // Keep the art, but apply a subtle tint for a cohesive look
-//                            Image("mountain_art")
-//                                .resizable()
-//                                .aspectRatio(contentMode: .fill)
-//                                .frame(height: 250)
-//                                .clipped()
-//                                .cornerRadius(25)
-//                                .overlay(
-//                                    // Subtle overlay to cool down the image tones
-//                                    TodayView.primaryColor.opacity(0.1)
-//                                        .cornerRadius(25)
-//                                )
+                        // --- MODIFIED CARD WITH SCROLLVIEW ---
+                        // The ZStack with the image is gone.
+                        // This is now a simple VStack with a solid background,
+                        // leaving space for a future image.
+                        VStack(alignment: .leading) {
                             
-                            VStack(alignment: .leading) {
-                                // Safely unwrap text
+                            // Wrap the text in a ScrollView to handle long memories
+                            ScrollView(.vertical, showsIndicators: true) {
                                 Text(memory.text ?? "No memory text found.")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
                                     .lineLimit(nil)
-                                
-                                // Safely unwrap and format date
-                                Text("Memory recollection from \(memory.date ?? Date(), formatter: itemFormatter).")
-                                    .font(.subheadline)
-                                    .foregroundColor(Color(white: 0.85)) // Off-white for subtitle
+                                    .frame(maxWidth: .infinity, alignment: .leading) // Aligns text to the left
                             }
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            // Deep Muted Green overlay for text legibility
-                            .background(TodayView.primaryColor.opacity(0.8))
-                            .cornerRadius(25)
+                            
+                            Spacer() // Pushes date to the bottom
+                            
+                            // Safely unwrap and format date
+                            Text("Memory recollection from \(memory.date ?? Date(), formatter: itemFormatter).")
+                                .font(.subheadline)
+                                .foregroundColor(Color(white: 0.85)) // Off-white for subtitle
+                                .padding(.top, 10)
                         }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        // We set a fixed height here. This ensures the card stays
+                        // on screen, and if the text is longer, the ScrollView above activates.
+                        .frame(height: 350)
+                        .background(TodayView.primaryColor.opacity(0.8)) // Solid primary color background
+                        // Deep Muted Green overlay for text legibility (applied via background color now)
+                        .cornerRadius(25)
+                        // --- END OF MODIFICATION ---
                     }
                     .padding(.horizontal)
                 } else {
@@ -110,7 +109,6 @@ struct TodayView: View {
                 
             }
         }
-        // --- NEW ---
         // Add the sheet modifier to present the settings view
         .sheet(isPresented: $showNotificationSheet) {
             NotificationSettingsView()
