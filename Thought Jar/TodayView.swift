@@ -57,47 +57,8 @@ struct TodayView: View {
                 
                 // Show the random thought card only if one is available.
                 if let memory = todaysMemory {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Today's random memory")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(TodayView.darkColor)
-                        
-                        // --- MODIFIED CARD WITH SCROLLVIEW ---
-                        // The ZStack with the image is gone.
-                        // This is now a simple VStack with a solid background,
-                        // leaving space for a future image.
-                        VStack(alignment: .leading) {
-                            
-                            // Wrap the text in a ScrollView to handle long memories
-                            ScrollView(.vertical, showsIndicators: true) {
-                                Text(memory.text ?? "No memory text found.")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .lineLimit(nil)
-                                    .frame(maxWidth: .infinity, alignment: .leading) // Aligns text to the left
-                            }
-                            
-                            Spacer() // Pushes date to the bottom
-                            
-                            // Safely unwrap and format date
-                            Text("Memory recollection from \(memory.date ?? Date(), formatter: itemFormatter).")
-                                .font(.subheadline)
-                                .foregroundColor(Color(white: 0.85)) // Off-white for subtitle
-                                .padding(.top, 10)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        // We set a fixed height here. This ensures the card stays
-                        // on screen, and if the text is longer, the ScrollView above activates.
-                        .frame(height: 350)
-                        .background(TodayView.primaryColor.opacity(0.8)) // Solid primary color background
-                        // Deep Muted Green overlay for text legibility (applied via background color now)
-                        .cornerRadius(25)
-                        // --- END OF MODIFICATION ---
-                    }
-                    .padding(.horizontal)
+                    // --- FIX: Pass the memory to an observing subview ---
+                    MemoryDisplayCard(memory: memory)
                 } else {
                     Text("Add your first memory in the New Memory tab to get started!")
                         .font(.title)
@@ -116,7 +77,52 @@ struct TodayView: View {
     }
 }
 
-// A helper for formatting dates
+// --- NEW: Observing Subview ---
+// This view observes the Memory object, so it will refresh
+// automatically when the 'text' or 'date' properties change.
+struct MemoryDisplayCard: View {
+    @ObservedObject var memory: Memory
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Today's random memory")
+                .font(.title)
+                .fontWeight(.bold)
+                .foregroundColor(TodayView.darkColor)
+            
+            VStack(alignment: .leading) {
+                
+                // Wrap the text in a ScrollView to handle long memories
+                ScrollView(.vertical, showsIndicators: true) {
+                    Text(memory.text ?? "No memory text found.")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .lineLimit(nil)
+                        .frame(maxWidth: .infinity, alignment: .leading) // Aligns text to the left
+                }
+                
+                Spacer() // Pushes date to the bottom
+                
+                // Safely unwrap and format date
+                Text("Memory recollection from \(memory.date ?? Date(), formatter: itemFormatter).")
+                    .font(.subheadline)
+                    .foregroundColor(Color(white: 0.85)) // Off-white for subtitle
+                    .padding(.top, 10)
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            // We set a fixed height here. This ensures the card stays
+            // on screen, and if the text is longer, the ScrollView above activates.
+            .frame(height: 350)
+            .background(TodayView.primaryColor) // Solid primary color background
+            // Deep Muted Green overlay for text legibility (applied via background color now)
+            .cornerRadius(25)
+        }
+        .padding(.horizontal)
+    }
+}
+
 private let itemFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateStyle = .long

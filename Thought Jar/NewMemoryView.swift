@@ -101,15 +101,14 @@ struct NewMemoryView: View {
                 .onTapGesture {
                     isEditorFocused = false // Dismiss keyboard if user taps header
                 }
-                
-                // --- New Thought Input Area (Moved to Top) ---
+
                 VStack(alignment: .leading) {
                     Text("What's on your mind?")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(NewMemoryView.darkColor)
                         .padding(.horizontal)
-                        .padding(.top, 20) // Added top padding for spacing
+                        .padding(.top, 30)
                         .onTapGesture {
                             isEditorFocused = false // Dismiss keyboard if user taps title
                         }
@@ -182,10 +181,9 @@ struct NewMemoryView: View {
                     
                 } // End Input VStack
                 .padding(.bottom, 20)
-                
-                Spacer() // This pushes the Recent Memories section to the bottom
-                
-                // --- Recent Memories (Hides when keyboard is active) ---
+
+                Spacer()
+
                 if !isEditorFocused {
                     VStack(alignment: .leading) {
                         
@@ -330,8 +328,12 @@ struct NewMemoryView: View {
             memory.text = editedMemoryText
             saveContext()
             
-            // If the edited memory was the "Today's Memory", update it.
+            // --- FIX: Force UI Refresh ---
+            // If the edited memory is Today's Memory, we toggle the binding.
+            // Toggling the reference (setting to nil and back) forces MainView
+            // and TodayView to recognize that a "new" data state exists.
             if todaysMemory?.id == memory.id {
+                todaysMemory = nil
                 todaysMemory = memory
             }
             editingMemory = nil // Dismiss overlay
