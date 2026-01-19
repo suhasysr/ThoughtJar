@@ -244,7 +244,7 @@ struct NotificationSettingsView: View {
     private func scheduleInactivityNotification() {
         let center = UNUserNotificationCenter.current()
         let identifier = "inactivity_reminder"
-
+        
         // Always remove existing to reset the timer (start fresh from now)
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
 

@@ -11,16 +11,16 @@ import SwiftUI
 struct ThoughtJarApp: App {
     // Create the persistence controller
     let persistenceController = PersistenceController.shared
-    
+
     // This init() runs before any view is created
     init() {
         // This makes all TextEditor backgrounds transparent by default
         UITextView.appearance().backgroundColor = .clear
-        
+
         // Request notification permission on app launch
         NotificationManager.shared.requestAuthorization()
     }
-    
+
     var body: some Scene {
         WindowGroup {
             MainView()

@@ -10,11 +10,11 @@ import SwiftUI
 
 struct TodayView: View {
     let todaysMemory: Memory? // Make it @ObservedObject
-    
+
     // --- NEW ---
     // State to control the notification settings modal
     @State private var showNotificationSheet = false
-    
+
     // --- NEW: AppStorage for Tooltip ---
     // This persists across app launches. false = hasn't seen it yet.
     @AppStorage("hasSeenSettingsTooltip") private var hasSeenSettingsTooltip: Bool = false
@@ -25,22 +25,22 @@ struct TodayView: View {
     static let primaryColor = Color(hex: 0x4A6D63)
     // New Dark Text/Header Color
     static let darkColor = Color(hex: 0x2C3E50)
-    
+
     var body: some View {
         // Use a ZStack to layer the content over the background color.
         ZStack {
             // Use the soft, creamy background
             TodayView.mutedBackground
                 .ignoresSafeArea()
-            
+
             VStack {
                 HStack {
                     Text("ThoughtJar") // Renamed from "Memory Vault" to match
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(TodayView.darkColor)
-                    
+
                     Spacer()
-                    
+
                     // Gear icon is now a Menu
                     Menu {
                         Button("Set up notifications") {
@@ -58,9 +58,9 @@ struct TodayView: View {
                 .padding(.top)
                 // --- NEW: ZIndex for Tooltip relative positioning ---
                 .zIndex(1)
-                
+
                 Spacer()
-                
+
                 // Show the random thought card only if one is available.
                 if let memory = todaysMemory {
                     // We extract the card into a subview that has @ObservedObject
@@ -72,10 +72,10 @@ struct TodayView: View {
                         .foregroundColor(TodayView.primaryColor)
                         .padding()
                 }
-                
+
                 Spacer()
             }
-            
+
             // --- NEW: Tooltip Overlay ---
             if !hasSeenSettingsTooltip {
                 TooltipOverlay(onDismiss: {
@@ -93,7 +93,7 @@ struct TodayView: View {
 // --- NEW: Tooltip View ---
 struct TooltipOverlay: View {
     let onDismiss: () -> Void
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .topTrailing) {
@@ -103,21 +103,21 @@ struct TooltipOverlay: View {
                     .onTapGesture {
                         withAnimation { onDismiss() }
                     }
-                
+
                 VStack(alignment: .trailing, spacing: 0) {
                     // Small Arrow pointing up
                     Image(systemName: "arrowtriangle.up.fill")
                         .resizable()
                         .frame(width: 15, height: 10)
                         .foregroundColor(TodayView.primaryColor)
-                        // ALIGNMENT CALCULATION:
-                        // Gear Icon is at: ScreenEdge - 16 (HStack pad) - 12.5 (Half Icon) = 28.5 from right
-                        // VStack is at: ScreenEdge - 16 (VStack pad)
-                        // Arrow needs to be centered at 12.5 from VStack right edge.
-                        // Arrow width is 15 (Half is 7.5).
-                        // Padding needed = 12.5 - 7.5 = 5.
+                    // ALIGNMENT CALCULATION:
+                    // Gear Icon is at: ScreenEdge - 16 (HStack pad) - 12.5 (Half Icon) = 28.5 from right
+                    // VStack is at: ScreenEdge - 16 (VStack pad)
+                    // Arrow needs to be centered at 12.5 from VStack right edge.
+                    // Arrow width is 15 (Half is 7.5).
+                    // Padding needed = 12.5 - 7.5 = 5.
                         .padding(.trailing, 5)
-                    
+
                     // Bubble
                     Text("Set daily or weekly reminders to peek into your thoughts")
                         .font(.caption)
@@ -140,16 +140,16 @@ struct TooltipOverlay: View {
 // --- NEW: Observing Subview for Memory ---
 struct ObservingMemoryCard: View {
     @ObservedObject var memory: Memory // Keeps UI in sync with Core Data updates
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Today's random thought")
                 .font(.title)
                 .fontWeight(.bold)
                 .foregroundColor(TodayView.darkColor)
-            
+
             VStack(alignment: .leading) {
-                
+
                 // Wrap the text in a ScrollView to handle long memories
                 ScrollView(.vertical, showsIndicators: true) {
                     Text(memory.text ?? "No thought found.")
@@ -159,9 +159,9 @@ struct ObservingMemoryCard: View {
                         .lineLimit(nil)
                         .frame(maxWidth: .infinity, alignment: .leading) // Aligns text to the left
                 }
-                
+
                 Spacer() // Pushes date to the bottom
-                
+
                 // Safely unwrap and format date
                 Text("Memory recollection from \(memory.date ?? Date(), formatter: itemFormatter).")
                     .font(.subheadline)
