@@ -321,7 +321,11 @@ struct NewMemoryView: View {
             let request: NSFetchRequest<Memory> = Memory.fetchRequest()
             do {
                 let remainingMemories = try viewContext.fetch(request)
-                todaysMemory = remainingMemories.randomElement()
+
+                // --- MODIFIED: Use the Smart Randomizer logic ---
+                // This ensures we try to pick a memory that wasn't the one just deleted (obviously)
+                // or the one shown immediately prior, if relevant logic extended.
+                todaysMemory = MemoryRandomizer.pick(from: remainingMemories)
 
                 let defaults = UserDefaults.standard
                 defaults.set(Date(), forKey: "lastPickDate")

@@ -115,7 +115,8 @@ struct MainView: View {
         // Fetch all memories from Core Data
         let allMemories = fetchAllMemories()
 
-        if let newMemory = allMemories.randomElement() {
+        // Use the helper to avoid consecutive repeats
+        if let newMemory = MemoryRandomizer.pick(from: allMemories) {
             todaysMemory = newMemory
 
             // Save this new memory to UserDefaults
