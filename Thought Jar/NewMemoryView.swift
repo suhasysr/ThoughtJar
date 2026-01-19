@@ -31,6 +31,9 @@ struct NewMemoryView: View {
     
     // Tracks if the TextEditor is active (for keyboard and layout)
     @FocusState private var isEditorFocused: Bool
+    
+    // --- AppStorage for Tooltip ---
+    @AppStorage("hasSeenSortTooltip") private var hasSeenSortTooltip: Bool = false
 
     // --- COLOR DEFINITIONS ---
     static let mutedBackground = Color(hex: 0xE5E7E4)
@@ -77,24 +80,11 @@ struct NewMemoryView: View {
                 
                 // --- Header ---
                 HStack {
-                    //                        Image(systemName: "arrow.backward")
-                    //                            .resizable()
-                    //                            .frame(width: 20, height: 15)
-                    //                            .foregroundColor(NewMemoryView.darkColor)
-                    //                            .padding(.leading)
-                    
-                    Text("New Memory")
+                    Text("New Thought")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(NewMemoryView.darkColor)
                         .padding(.leading)
                     Spacer()
-                    //                        Spacer()
-                    //                        Image(systemName: "ellipsis")
-                    //                            .resizable()
-                    //                            .frame(width: 20, height: 5)
-                    //                            .foregroundColor(NewMemoryView.darkColor)
-                    //                            .rotationEffect(.degrees(90))
-                    //                            .padding(.trailing)
                 }
                 .padding(.top)
                 .padding(.bottom, 10) // Space below header
@@ -102,13 +92,14 @@ struct NewMemoryView: View {
                     isEditorFocused = false // Dismiss keyboard if user taps header
                 }
 
+                // --- New Thought Input Area (Moved to Top) ---
                 VStack(alignment: .leading) {
                     Text("What's on your mind?")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(NewMemoryView.darkColor)
                         .padding(.horizontal)
-                        .padding(.top, 30)
+                        .padding(.top, 30) // Added top padding for spacing
                         .onTapGesture {
                             isEditorFocused = false // Dismiss keyboard if user taps title
                         }
@@ -117,7 +108,7 @@ struct NewMemoryView: View {
                     ZStack(alignment: .topLeading) {
                         
                         TextEditor(text: $newMemoryText)
-                        // Expands height when focused
+                            // Expands height when focused
                             .frame(height: isEditorFocused ? UIScreen.main.bounds.height * 0.35 : 150)
                             .padding(10)
                             .scrollContentBackground(.hidden)
@@ -168,7 +159,7 @@ struct NewMemoryView: View {
                     
                     // --- Save Button (Moved Below Input Area) ---
                     Button(action: addMemory) {
-                        Text("Save Memory")
+                        Text("Deposit Thought")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding()
@@ -178,18 +169,19 @@ struct NewMemoryView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
-                    
+
                 } // End Input VStack
                 .padding(.bottom, 20)
 
-                Spacer()
+                Spacer() // This pushes the Recent Memories section to the bottom
 
+                // --- Recent Memories (Hides when keyboard is active) ---
                 if !isEditorFocused {
                     VStack(alignment: .leading) {
                         
                         // This is now an HStack to hold the title and menu
                         HStack {
-                            Text("Recent Memories")
+                            Text("Recent Thoughts")
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(NewMemoryView.darkColor)
@@ -211,18 +203,30 @@ struct NewMemoryView: View {
                                     memories.sortDescriptors = SortType.firstAdded.descriptors
                                 }
                             } label: {
+                                // FIXED JITTER: Rotate image inside the frame, stable container
                                 Image(systemName: "ellipsis")
                                     .font(.callout)
+                                    .rotationEffect(.degrees(90))
                                     .foregroundColor(NewMemoryView.darkColor)
-                                    .padding(8)
+                                    .frame(width: 44, height: 44) // Fixed touch target size
                                     .contentShape(Rectangle())
                             }
-                            .rotationEffect(.degrees(90)) // Makes the ellipsis vertical
-                            // --- END OF NEW SORT MENU ---
+                            // Removed external padding/rotation to prevent layout shift
                         }
-                        .padding(.horizontal)
+                        // --- UPDATED TOOLTIP LOGIC ---
+                        .overlay(alignment: .bottomTrailing) {
+                            if !hasSeenSortTooltip {
+                                SortTooltipView(onDismiss: {
+                                    hasSeenSortTooltip = true
+                                })
+                                .offset(x: 0, y: -45)
+                                .zIndex(1)
+                            }
+                        }
+                        // Set standard horizontal padding to 20 to strictly control alignment
+                        .padding(.horizontal, 20)
                         .padding(.bottom, 5)
-                        
+
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 15) {
                                 ForEach(memories) { memory in
@@ -241,13 +245,11 @@ struct NewMemoryView: View {
                             .padding(.horizontal)
                             .padding(.bottom)
                         }
-                        
-                        // Spacer() // Ensures this section pushes up if needed, or fills space. REMOVED as we want it at bottom
                     }
                 } else {
                     Spacer() // Pushes input area to top when focused
                 }
-                
+
             } // End Main VStack
             
             // --- Edit Overlay (Shown when editingMemory is not nil) ---
@@ -328,14 +330,13 @@ struct NewMemoryView: View {
             memory.text = editedMemoryText
             saveContext()
             
-            // --- FIX: Force UI Refresh ---
-            // If the edited memory is Today's Memory, we toggle the binding.
-            // Toggling the reference (setting to nil and back) forces MainView
-            // and TodayView to recognize that a "new" data state exists.
+            // --- FIX FOR UI REFLECTION ---
             if todaysMemory?.id == memory.id {
+                let current = todaysMemory
                 todaysMemory = nil
-                todaysMemory = memory
+                todaysMemory = current
             }
+            
             editingMemory = nil // Dismiss overlay
         }
     }
@@ -352,6 +353,50 @@ struct NewMemoryView: View {
 
 
 // MARK: - Helper Views
+
+// --- NEW: Tooltip View for Sorting ---
+struct SortTooltipView: View {
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .trailing, spacing: -2) { // Negative spacing to merge shapes
+            // Bubble
+            Text("Sort your previously entered thoughts")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.leading) // Ensure readable wrapping
+                .padding(12)
+                .background(NewMemoryView.primaryColor)
+                .cornerRadius(10)
+                // Removed shadow from here
+                .frame(maxWidth: 280, alignment: .trailing) // Increased width, aligned right
+                .fixedSize(horizontal: false, vertical: true) // Allow vertical expansion
+                .onTapGesture {
+                    withAnimation { onDismiss() }
+                }
+            
+            // Small Arrow pointing down
+            Image(systemName: "arrowtriangle.down.fill")
+                .resizable()
+                .frame(width: 15, height: 10)
+                .foregroundColor(NewMemoryView.primaryColor)
+                // ALIGNMENT FIX:
+                // Menu Icon Center: 20 (Stack Padding) + 22 (Half Icon Width) = 42pts from Right Edge
+                // Arrow Width: 15pts (Half is 7.5pts)
+                // To align centers: Padding + 7.5 = 42
+                // Padding = 42 - 7.5 = 34.5
+                .padding(.trailing, 14.5)
+                // Note: The overlay is on the HStack which has 20 padding.
+                // So the tooltip right edge is at "Screen Right - 20".
+                // We want arrow center at "Screen Right - 42".
+                // So relative to Tooltip edge: 22pts.
+                // X + 7.5 = 22 => X = 14.5
+        }
+        // Apply shadow to the combined shape so they look like one piece
+        .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 5)
+    }
+}
 
 // MARK: - Helper View: MemoryCard
 struct MemoryCard: View {
@@ -471,4 +516,3 @@ fileprivate let itemFormatter: DateFormatter = {
     formatter.timeStyle = .none
     return formatter
 }()
-

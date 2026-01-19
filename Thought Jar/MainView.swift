@@ -66,7 +66,7 @@ struct MainView: View {
             // Pass the binding for todaysMemory
             NewMemoryView(todaysMemory: $todaysMemory)
                 .tabItem {
-                    Label("New Memory", systemImage: "pencil.and.scribble")
+                    Label("New Thought", systemImage: "pencil.and.scribble")
                 }
         }
         // We no longer need .accentColor() here, as .appearance() handles it
