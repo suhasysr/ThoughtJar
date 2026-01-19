@@ -8,31 +8,36 @@
 
 import SwiftUI
 import CoreData
+import UserNotifications
 
 // MARK: - Main View
 struct NewMemoryView: View {
-    
+
     // --- PROPERTIES ---
-    
+
+    // Core Data Context
     @Environment(\.managedObjectContext) private var viewContext
-    
-    @Binding var todaysMemory: Memory? // Binding to the Core Data object
-    
-    // This property wrapper automatically fetches data from Core Data
-    // and updates the view when the data changes.
+
+    // Binding to the Core Data object passed from the parent view
+    @Binding var todaysMemory: Memory?
+
+    // FetchRequest to get all memories, sorted by date (newest first)
     @FetchRequest(
         sortDescriptors: [SortDescriptor(\.date, order: .reverse)], // Default: Sort by last added
         animation: .default)
     private var memories: FetchedResults<Memory>
-    
+
+    // Local state for the text input
     @State private var newMemoryText: String = ""
-    @State private var editingMemory: Memory? // This will be the Core Data object
+
+    // State to track which memory is being edited (nil means no edit in progress)
+    @State private var editingMemory: Memory?
     @State private var editedMemoryText: String = ""
-    
-    // Tracks if the TextEditor is active (for keyboard and layout)
+
+    // Tracks if the TextEditor is active (for keyboard management and layout adjustments)
     @FocusState private var isEditorFocused: Bool
-    
-    // --- AppStorage for Tooltip ---
+
+    // AppStorage to persist if the user has seen the sorting tooltip
     @AppStorage("hasSeenSortTooltip") private var hasSeenSortTooltip: Bool = false
 
     // --- COLOR DEFINITIONS ---
@@ -40,13 +45,13 @@ struct NewMemoryView: View {
     static let primaryColor = Color(hex: 0x4A6D63)
     static let darkColor = Color(hex: 0x2C3E50)
     static let cardHighlight = Color(hex: 0xD4DAD3)
-    
+
     // --- SORTING ---
     private enum SortType {
         case alphabetical
         case lastAdded
         case firstAdded
-        
+
         // This creates the correct SortDescriptor for Core Data
         var descriptors: [SortDescriptor<Memory>] {
             switch self {
@@ -62,9 +67,9 @@ struct NewMemoryView: View {
             }
         }
     }
-    
+
     // --- BODY ---
-    
+
     var body: some View {
         ZStack {
             // Use the soft background
@@ -75,10 +80,10 @@ struct NewMemoryView: View {
                     isEditorFocused = false
                 }
 
-            // Scrollable content area
+            // Main Content Stack
             VStack(alignment: .leading, spacing: 0) {
-                
-                // --- Header ---
+
+                // --- Header Section ---
                 HStack {
                     Text("New Thought")
                         .font(.system(size: 24, weight: .bold))
@@ -92,7 +97,7 @@ struct NewMemoryView: View {
                     isEditorFocused = false // Dismiss keyboard if user taps header
                 }
 
-                // --- New Thought Input Area (Moved to Top) ---
+                // --- Input Section ---
                 VStack(alignment: .leading) {
                     Text("What's on your mind?")
                         .font(.title2)
@@ -103,17 +108,17 @@ struct NewMemoryView: View {
                         .onTapGesture {
                             isEditorFocused = false // Dismiss keyboard if user taps title
                         }
-                    
-                    // TextEditor and its placeholder/minimize button
+
+                    // Text Editor Area
                     ZStack(alignment: .topLeading) {
-                        
+
                         TextEditor(text: $newMemoryText)
-                            // Expands height when focused
+                        // Expands height when focused
                             .frame(height: isEditorFocused ? UIScreen.main.bounds.height * 0.35 : 150)
                             .padding(10)
                             .scrollContentBackground(.hidden)
                             .background(NewMemoryView.cardHighlight)
-                            // --- FIX 1: Force text color to be dark ---
+                        // --- FIX 1: Force text color to be dark ---
                             .foregroundColor(NewMemoryView.darkColor)
                             .cornerRadius(10)
                             .focused($isEditorFocused) // Binds focus to the state
@@ -122,7 +127,7 @@ struct NewMemoryView: View {
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(isEditorFocused ? NewMemoryView.primaryColor : Color.clear, lineWidth: 2)
                             )
-                        
+
                         // Custom "I want to remember..." Placeholder
                         if newMemoryText.isEmpty {
                             Text("I want to remember ...")
@@ -132,8 +137,8 @@ struct NewMemoryView: View {
                                 .padding(.top, 18)
                                 .allowsHitTesting(false) // Lets taps pass through
                         }
-                        
-                        // Minimize Keyboard Button
+
+                        // Minimize Keyboard Button (only visible when focused)
                         if isEditorFocused {
                             HStack {
                                 Spacer()
@@ -156,8 +161,8 @@ struct NewMemoryView: View {
                     .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
                     // Animate the height change
                     .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isEditorFocused)
-                    
-                    // --- Save Button (Moved Below Input Area) ---
+
+                    // Save Button
                     Button(action: addMemory) {
                         Text("Deposit Thought")
                             .font(.headline)
@@ -175,10 +180,10 @@ struct NewMemoryView: View {
 
                 Spacer() // This pushes the Recent Memories section to the bottom
 
-                // --- Recent Memories (Hides when keyboard is active) ---
+                // --- Recent Memories Section (Hidden when typing) ---
                 if !isEditorFocused {
                     VStack(alignment: .leading) {
-                        
+
                         // This is now an HStack to hold the title and menu
                         HStack {
                             Text("Recent Thoughts")
@@ -188,9 +193,9 @@ struct NewMemoryView: View {
                                 .onTapGesture {
                                     isEditorFocused = false
                                 }
-                            
+
                             Spacer() // Pushes the menu to the right
-                            
+
                             // --- NEW SORT MENU ---
                             Menu {
                                 Button("Sort alphabetically") {
@@ -203,7 +208,7 @@ struct NewMemoryView: View {
                                     memories.sortDescriptors = SortType.firstAdded.descriptors
                                 }
                             } label: {
-                                // FIXED JITTER: Rotate image inside the frame, stable container
+                                // Fixed frame to prevent jitter during interaction
                                 Image(systemName: "ellipsis")
                                     .font(.callout)
                                     .rotationEffect(.degrees(90))
@@ -211,9 +216,8 @@ struct NewMemoryView: View {
                                     .frame(width: 44, height: 44) // Fixed touch target size
                                     .contentShape(Rectangle())
                             }
-                            // Removed external padding/rotation to prevent layout shift
                         }
-                        // --- UPDATED TOOLTIP LOGIC ---
+                        // Tooltip Overlay for first-time users
                         .overlay(alignment: .bottomTrailing) {
                             if !hasSeenSortTooltip {
                                 SortTooltipView(onDismiss: {
@@ -227,6 +231,7 @@ struct NewMemoryView: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 5)
 
+                        // Scrollable list of memories
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 15) {
                                 ForEach(memories) { memory in
@@ -251,7 +256,7 @@ struct NewMemoryView: View {
                 }
 
             } // End Main VStack
-            
+
             // --- Edit Overlay (Shown when editingMemory is not nil) ---
             if let memoryToEdit = editingMemory {
                 EditMemoryOverlay(
@@ -267,26 +272,27 @@ struct NewMemoryView: View {
             }
         }
     }
-    
+
     // --- Core Data CRUD Functions ---
-    
+
     private func addMemory() {
+        // Validation: Don't save empty memories
         if newMemoryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return
         }
-        
+
         withAnimation {
             let newMemory = Memory(context: viewContext)
             newMemory.id = UUID()
             newMemory.date = Date()
             newMemory.text = newMemoryText
-            
+
             saveContext()
             newMemoryText = ""
-            
-            isEditorFocused = false // Dismiss keyboard on save
-            
-            // If this is the very first memory, set it as today's
+
+            isEditorFocused = false
+
+            // If this is the first memory ever added, set it as Today's Memory immediately
             if memories.count == 1 {
                 todaysMemory = newMemory
                 // Save to UserDefaults
@@ -294,59 +300,99 @@ struct NewMemoryView: View {
                 defaults.set(Date(), forKey: "lastPickDate")
                 defaults.set(newMemory.id?.uuidString, forKey: "todaysMemoryID")
             }
+
+            // --- Reset Inactivity Timer ---
+            // Schedule the "What made you smile?" notification for 7 days from now
+            scheduleInactivityNotification()
         }
     }
-    
+
     private func deleteMemoryAction(memory: Memory) {
         let isTodaysMemory = (todaysMemory?.id == memory.id)
-        
+
         withAnimation {
             viewContext.delete(memory)
             saveContext()
         }
-        
-        // If the deleted memory was today's, pick a new random one.
+
+        // If the user deleted the memory currently shown on the dashboard, pick a new one
         if isTodaysMemory {
             // Fetch all remaining memories
             let request: NSFetchRequest<Memory> = Memory.fetchRequest()
             do {
                 let remainingMemories = try viewContext.fetch(request)
-                todaysMemory = remainingMemories.randomElement() // Pick a new one
-                
-                // Update UserDefaults
+                todaysMemory = remainingMemories.randomElement()
+
                 let defaults = UserDefaults.standard
                 defaults.set(Date(), forKey: "lastPickDate")
                 defaults.set(todaysMemory?.id?.uuidString, forKey: "todaysMemoryID")
-                
+
             } catch {
                 print("Failed to fetch after delete: \(error)")
                 todaysMemory = nil
             }
         }
     }
-    
+
     private func updateMemoryAction(memory: Memory) {
         withAnimation {
             memory.text = editedMemoryText
             saveContext()
-            
-            // --- FIX FOR UI REFLECTION ---
+
+            // Fix for UI Reflection:
+            // Force the parent view to recognize the change if the edited memory is currently displayed
             if todaysMemory?.id == memory.id {
                 let current = todaysMemory
                 todaysMemory = nil
                 todaysMemory = current
             }
-            
+
             editingMemory = nil // Dismiss overlay
         }
     }
-    
+
     private func saveContext() {
         do {
             try viewContext.save()
         } catch {
             let nsError = error as NSError
             fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        }
+    }
+
+    // --- Inactivity Notification Logic ---
+    private func scheduleInactivityNotification() {
+        // Check if the user has disabled this specific notification in Settings
+        // We default to true if the key hasn't been set yet
+        let isEnabled = UserDefaults.standard.object(forKey: "inactivityReminderEnabled") as? Bool ?? true
+
+        let center = UNUserNotificationCenter.current()
+        let identifier = "inactivity_reminder"
+
+        // Always remove existing to reset the timer (e.g. if previous was 3 days ago, start fresh from today)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        // If disabled by user, stop here (effectively deleting it)
+        guard isEnabled else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Thought Jar"
+        content.body = "What made you smile recently?"
+        content.sound = .default
+
+        // Changed to 7 days
+        // 7 days * 24 hours * 60 minutes * 60 seconds
+        let interval: TimeInterval = 7 * 24 * 60 * 60
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: true)
+
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+        center.add(request) { error in
+            if let error = error {
+                print("Error scheduling inactivity notification: \(error)")
+            } else {
+                print("Inactivity notification scheduled for 7 days from now.")
+            }
         }
     }
 }
@@ -357,7 +403,7 @@ struct NewMemoryView: View {
 // --- NEW: Tooltip View for Sorting ---
 struct SortTooltipView: View {
     let onDismiss: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .trailing, spacing: -2) { // Negative spacing to merge shapes
             // Bubble
@@ -369,29 +415,24 @@ struct SortTooltipView: View {
                 .padding(12)
                 .background(NewMemoryView.primaryColor)
                 .cornerRadius(10)
-                // Removed shadow from here
+            // Removed shadow from here
                 .frame(maxWidth: 280, alignment: .trailing) // Increased width, aligned right
                 .fixedSize(horizontal: false, vertical: true) // Allow vertical expansion
                 .onTapGesture {
                     withAnimation { onDismiss() }
                 }
-            
+
             // Small Arrow pointing down
             Image(systemName: "arrowtriangle.down.fill")
                 .resizable()
                 .frame(width: 15, height: 10)
                 .foregroundColor(NewMemoryView.primaryColor)
-                // ALIGNMENT FIX:
-                // Menu Icon Center: 20 (Stack Padding) + 22 (Half Icon Width) = 42pts from Right Edge
-                // Arrow Width: 15pts (Half is 7.5pts)
-                // To align centers: Padding + 7.5 = 42
-                // Padding = 42 - 7.5 = 34.5
                 .padding(.trailing, 14.5)
-                // Note: The overlay is on the HStack which has 20 padding.
-                // So the tooltip right edge is at "Screen Right - 20".
-                // We want arrow center at "Screen Right - 42".
-                // So relative to Tooltip edge: 22pts.
-                // X + 7.5 = 22 => X = 14.5
+            // Note: The overlay is on the HStack which has 20 padding.
+            // So the tooltip right edge is at "Screen Right - 20".
+            // We want arrow center at "Screen Right - 42".
+            // So relative to Tooltip edge: 22pts.
+            // X + 7.5 = 22 => X = 14.5
         }
         // Apply shadow to the combined shape so they look like one piece
         .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 5)
@@ -403,7 +444,7 @@ struct MemoryCard: View {
     @ObservedObject var memory: Memory // Use @ObservedObject for Core Data objects
     let onEdit: () -> Void
     let onDelete: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -412,9 +453,9 @@ struct MemoryCard: View {
                     .foregroundColor(NewMemoryView.darkColor)
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
-                
+
                 Spacer()
-                
+
                 // Edit Icon
                 Button(action: onEdit) {
                     Image(systemName: "pencil.circle.fill")
@@ -423,7 +464,7 @@ struct MemoryCard: View {
                         .foregroundColor(NewMemoryView.primaryColor)
                 }
                 .buttonStyle(PlainButtonStyle()) // To prevent unwanted button styling
-                
+
                 // Delete Icon
                 Button(action: onDelete) {
                     Image(systemName: "trash.circle.fill")
@@ -433,9 +474,9 @@ struct MemoryCard: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-            
+
             Spacer()
-            
+
             Text(memory.date ?? Date(), formatter: itemFormatter) // Use a formatter
                 .font(.caption)
                 .foregroundColor(NewMemoryView.primaryColor.opacity(0.7))
@@ -454,28 +495,28 @@ struct EditMemoryOverlay: View {
     @Binding var editedText: String
     let onSave: () -> Void
     let onCancel: () -> Void
-    
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.4).ignoresSafeArea().onTapGesture(perform: onCancel)
-            
+
             VStack(alignment: .leading, spacing: 15) {
                 Text("Edit Memory")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(NewMemoryView.darkColor)
-                
+
                 TextEditor(text: $editedText)
                     .frame(height: 150)
                     .padding(8)
                     .scrollContentBackground(.hidden)
-                    // CHANGED: Ensure this uses your app's color,
-                    // not a system default like .systemGray5
+                // CHANGED: Ensure this uses your app's color,
+                // not a system default like .systemGray5
                     .background(NewMemoryView.cardHighlight)
-                    // --- FIX 2: Force text color to be dark ---
+                // --- FIX 2: Force text color to be dark ---
                     .foregroundColor(NewMemoryView.darkColor)
                     .cornerRadius(8)
-                
+
                 HStack {
                     Button(action: onCancel) {
                         Text("Cancel")
@@ -486,7 +527,7 @@ struct EditMemoryOverlay: View {
                             .background(Color.gray)
                             .cornerRadius(10)
                     }
-                    
+
                     Button(action: onSave) {
                         Text("Save")
                             .font(.headline)
